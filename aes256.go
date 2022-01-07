@@ -1,8 +1,9 @@
+package github.com/bnc-dev/go-library
+
 // aes256.go
 // Author Andrey Izman <izmanw@gmail.com>
 // Copyright 2018 Andrey Izman
 // License MIT
-package github.com/bnc-dev/go-library
 
 import (
 	"bytes"
