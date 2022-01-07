@@ -1,18 +1,18 @@
 package github.com/bnc-dev/go-library
 
 import (
-	"fmt"
-	"regexp"
-	"reflect"
-	"strconv"
-	"net/smtp"
-	"crypto/tls"
-	"strings"
-	"time"
 	"archive/zip"
+	"crypto/tls"
+	"fmt"
 	"io"
+	"net/smtp"
 	"os"
 	"path/filepath"
+	"reflect"
+	"regexp"
+	"strconv"
+	"strings"
+	"time"
 
 	cryptomd5 "crypto/md5"
 	email "github.com/jordan-wright/email"
@@ -97,17 +97,21 @@ func InStringSlice(val string, slice []string) (int, bool) {
 }
 
 func SendMail(param map[string]interface{}) error {
+	var result_error error
 
 	sender_host, _ := param["sender_host"]
 	sender_port, _ := param["sender_port"]
 	sender_name, _ := param["sender_name"]
 	sender_email, _ := param["sender_email"]
 	sender_password, _ := param["sender_password"]
+	sender_tls, _ := param["sender_tls"]
+	sender_insecure_skip_verify, _ := param["sender_insecure_skip_verify"]
 	
 	arr_to, _ := param["to"]
 	arr_cc, _ := param["cc"]
 	arr_bcc, _ := param["bcc"]
-
+	arr_attachment, _ := param["attachment"]
+	
 	ls_subject, _ := param["subject"]
 	ls_message_text, _ := param["message"]
 	ls_message_html, _ := param["message_html"]
@@ -119,35 +123,41 @@ func SendMail(param map[string]interface{}) error {
 	var ls_sender_email string = ""
 	var ls_sender_password string = ""
 	var ls_sender_name string = ""
+	var ls_sender_tls string = ""
+	var ls_sender_insecure_skip_verify bool = true
 	
 	if(sender_host != nil && strings.TrimSpace(sender_host.(string)) != ""){
 		ls_sender_host = sender_host.(string)
-	}else{
-		ls_sender_host = "mail.yudhabhakti.co.id"
 	}
 
 	if(sender_port != nil && strings.TrimSpace(sender_port.(string)) != ""){
 		ls_sender_port = sender_port.(string)
-	}else{
-		ls_sender_port = "465"
 	}
 
 	if(sender_email != nil && strings.TrimSpace(sender_email.(string)) != ""){
 		ls_sender_email = sender_email.(string)
-	}else{
-		ls_sender_email = "no-reply@yudhabhakti.co.id"
 	}
 	
 	if(sender_name != nil && strings.TrimSpace(sender_name.(string)) != ""){
 		ls_sender_name = sender_name.(string)
-	}else{
-		ls_sender_name = "BYB Dukcapil System"
 	}
 
 	if(sender_password != nil && strings.TrimSpace(sender_password.(string)) != ""){
 		ls_sender_password = sender_password.(string)
 	}else{
 		ls_sender_password = "U2FsdGVkX19yCR2w7jntHnP9fHrCC+WDcwHDgyq/Njg="
+	}
+
+	if(sender_tls != nil && strings.TrimSpace(sender_tls.(string)) != ""){
+		ls_sender_tls = sender_tls.(string)
+	}else{
+		ls_sender_tls = "tls"
+	}
+
+	if(sender_insecure_skip_verify != nil && strings.TrimSpace(sender_insecure_skip_verify.(string)) != "" && strings.TrimSpace(sender_insecure_skip_verify.(string)) != "true"){
+		ls_sender_insecure_skip_verify = false
+	}else{
+		ls_sender_insecure_skip_verify = true
 	}
 
 	e.From = (ls_sender_name + " <" + ls_sender_email + ">")
@@ -183,6 +193,16 @@ func SendMail(param map[string]interface{}) error {
 		e.Bcc = arr_tmp
 	}
 
+	if(arr_attachment != nil && len(arr_attachment.([]string)) > 0){
+		for _, val :=  range arr_attachment.([]string) {
+			if(strings.TrimSpace(val) != ""){
+				e.AttachFile(val)
+			}
+		}
+		
+	}
+
+
 	e.Subject = ls_subject.(string)
 	
 	if(ls_message_text != nil && strings.TrimSpace( ls_message_text.(string)) != ""){
@@ -194,12 +214,20 @@ func SendMail(param map[string]interface{}) error {
 	}
 	
 	
-	// TLS config
+	/// TLS config
 	tlsconfig := &tls.Config {
-		InsecureSkipVerify: true,
+		InsecureSkipVerify: ls_sender_insecure_skip_verify,
 		ServerName: ls_sender_host,
 	}
-	result_error := e.SendWithTLS(ls_sender_host + ":" + ls_sender_port, smtp.PlainAuth("", ls_sender_email, Decrypt(ls_sender_password), ls_sender_host), tlsconfig)
+	_=tlsconfig
+
+	if(ls_sender_tls == "tls") {
+		result_error = e.SendWithTLS(ls_sender_host+":"+ls_sender_port, smtp.PlainAuth("", ls_sender_email, Decrypt(ls_sender_password), ls_sender_host), tlsconfig)
+	}else if(ls_sender_tls == "starttls") {
+		result_error = e.SendWithStartTLS(ls_sender_host+":"+ls_sender_port, smtp.PlainAuth("", ls_sender_email, Decrypt(ls_sender_password), ls_sender_host), tlsconfig)
+	}else {
+		result_error = e.Send(ls_sender_host + ":" + ls_sender_port, smtp.PlainAuth("", ls_sender_email, Decrypt(ls_sender_password), ls_sender_host))
+	}
 	// fmt.Println("result_error", result_error)
 
 	return result_error

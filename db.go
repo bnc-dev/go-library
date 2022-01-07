@@ -11,10 +11,10 @@ import (
 	"time"
 
 	sql "database/sql"
-	_ "github.com/alexbrainman/odbc"
 	_ "github.com/denisenkom/go-mssqldb"
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
+	// _ "github.com/alexbrainman/odbc"
 	// "github.com/go-xorm/xorm"
 	"xorm.io/xorm"
 )

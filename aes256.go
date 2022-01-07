@@ -5,22 +5,22 @@
 package github.com/bnc-dev/go-library
 
 import (
+	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
-	"crypto/rand"
 	"crypto/md5"
+	"crypto/rand"
 	b64 "encoding/base64"
-	"bytes"
 	"io"
 	"os"
 )
 
 func Encrypt(text string) (string) {
-	return encrypt(text, os.Getenv("ENCRYP_KEY"))
+	return EncryptWithKey(text, os.Getenv("ENCRYP_KEY"))
 }
 
 // Encrypts text with the passphrase
-func encrypt(text string, passphrase string) (string) {
+func EncryptWithKey(text string, passphrase string) (string) {
 	salt := make([]byte, 8)
 	if _, err := io.ReadFull(rand.Reader, salt); err != nil {
 		panic(err.Error())
@@ -43,11 +43,11 @@ func encrypt(text string, passphrase string) (string) {
 
 
 func Decrypt(encrypted string) (string) {
-	return decrypt(encrypted, os.Getenv("ENCRYP_KEY"))
+	return DecryptWithKey(encrypted, os.Getenv("ENCRYP_KEY"))
 }
 
 // Decrypts encrypted text with the passphrase
-func decrypt(encrypted string, passphrase string) (string) {
+func DecryptWithKey(encrypted string, passphrase string) (string) {
 	ct, _ := b64.StdEncoding.DecodeString(encrypted)
 	if len(ct) < 16 || string(ct[:8]) != "Salted__" {
 		return ""
